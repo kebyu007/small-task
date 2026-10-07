@@ -1,19 +1,17 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
     container_name: smalltask_db
     environment:
-      POSTGRES_DB: smalltask
-      POSTGRES_USER: kebyu
-      POSTGRES_PASSWORD: 7007
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kebyu -d smalltask"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -22,14 +20,14 @@ services:
     image: redis:7-alpine
     container_name: smalltask_redis
     ports:
-      - "6379:6379"
+      - "6380:6379"
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: smalltask_rabbitmq
     ports:
-      - "5672:5672"
-      - "15672:15672" 
+      - "5673:5672"
+      - "15673:15672"
 
   api:
     build: .
@@ -41,16 +39,11 @@ services:
         condition: service_started
       rabbitmq:
         condition: service_started
+    env_file: .env
     environment:
-      - PORT=3000
       - DB_HOST=db
-      - DB_PORT=5432
-      - DB_NAME=smalltask
-      - DB_USER=kebyu
-      - DB_PASSWORD=7007
       - REDIS_URL=redis://redis:6379
       - RABBITMQ_URL=amqp://rabbitmq
-      - REDIS_TTL=3600
     ports:
       - "3000:3000"
     command: sh -c "npm run migrate && npm run start:dev" 
@@ -63,12 +56,9 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_started
+    env_file: .env
     environment:
       - DB_HOST=db
-      - DB_PORT=5432
-      - DB_NAME=smalltask
-      - DB_USER=kebyu
-      - DB_PASSWORD=7007
       - RABBITMQ_URL=amqp://rabbitmq
     command: npm run start:worker
 
